@@ -1,0 +1,23 @@
+name: 💡 Ideia
+description: Sugerir uma melhoria ou funcionalidade
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve?
+      description: Descreva a dor ou a oportunidade.
+      placeholder: Quando estou em fullscreen...
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Como você imagina a solução?
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas

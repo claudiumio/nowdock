@@ -1,0 +1,34 @@
+name: 🐞 Bug
+description: Reportar um problema no NowDock
+labels: [bug]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o comportamento observado e o esperado.
+      placeholder: O painel não aparece quando...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Abra o Spotify...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Versão do macOS, player e versão, posição da Dock, monitores.
+      placeholder: macOS 26.1, Spotify 1.2.x, Dock embaixo, 1 monitor
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: Logs, screenshots ou observações
+      description: Arraste screenshots para cá. Logs: Console.app, processo NowDock.

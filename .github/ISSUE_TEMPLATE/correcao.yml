@@ -1,0 +1,26 @@
+name: 🛠️ Correção
+description: Enviar uma correção de código (sem Pull Request)
+labels: [fix]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: O que está errado?
+      description: Descreva o bug ou vincule a issue existente (ex.: #12).
+    validations:
+      required: true
+  - type: textarea
+    id: correcao
+    attributes:
+      label: Correção proposta
+      description: Descreva a mudança. Cole o diff aqui ou anexe um arquivo .diff/.patch (git diff > fix.diff).
+      render: diff
+    validations:
+      required: true
+  - type: checkboxes
+    id: termos
+    attributes:
+      label: Termos
+      options:
+        - label: Li e concordo com a seção 3 (Contribuições) da LICENSE.md
+          required: true
