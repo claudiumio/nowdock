@@ -15,9 +15,9 @@ Companion nativo para macOS que mostra a música tocando num painel "irmão" da 
 
 | Fase | Player | Como |
 |---|---|---|
-| MVP | Spotify | Notificação distribuída `com.spotify.client.PlaybackStateChanged` + AppleScript (capa, shuffle, repeat, posição, comandos) |
-| MVP | Apple Music | Notificação distribuída `com.apple.Music.playerInfo` + AppleScript (capa, playlist, shuffle, repeat, posição, comandos) |
-| 6 | Qualquer outro (navegadores, VLC, IINA, Tidal, Deezer...) | MediaRemote via [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) — **exige aprovação** por ser dependência nova (ver §9) |
+| MVP | Qualquer um (Spotify, Música, navegadores, VLC...) | MediaRemote do sistema via dlopen (zero permissões): info + transporte |
+| MVP (fallback) | Spotify | Notificação distribuída + AppleScript só se Automação já liberada |
+| MVP (fallback) | Apple Music | Notificação distribuída + AppleScript só se Automação já liberada |
 
 **Fora do escopo do MVP:** Dock na esquerda/direita da tela (o painel se esconde), letras, scrobbling, múltiplos painéis por monitor.
 
@@ -25,7 +25,7 @@ Companion nativo para macOS que mostra a música tocando num painel "irmão" da 
 
 Meta: **0,0 % de CPU ocioso**, **< 40 MB de memória residente**, "Impacto de energia: Baixo" no Monitor de Atividade.
 
-- **Tudo por evento, nada de polling.** Players avisam por notificação distribuída; a geometria da Dock é recalculada só em eventos (mudança de tela, app aberto/fechado, preferência da Dock alterada), com debounce de 300 ms.
+- **Tudo por evento, nada de polling.** MediaRemote avisa; geometria da Dock é recalculada só em eventos (mudança de tela, app aberto/fechado, preferência da Dock alterada), com debounce de 300 ms.
 - **O relógio da barra de progresso só roda quando precisa:** tocando **e** painel visível. A posição é derivada de `posição + (agora − timestamp)` e o redesenho é a 1 Hz (`TimelineView(.periodic)`). Pausado ou oculto = zero timers.
 - **Ressincronização leve de posição:** uma consulta AppleScript a cada 15 s, só enquanto toca e está visível (corrige seek feito dentro do player).
 - **Nunca mandar AppleScript para um app fechado** (isso abriria o app). Sempre checar `NSRunningApplication` antes.
@@ -91,9 +91,10 @@ Tipos do executável que atravessam camadas (nomes fixos):
 - Comandos: `playpause`, `next track`, `previous track`, `set player position`, `set shuffle enabled`, `set song repeat`.
 - Linha secundária: `Artista — Playlist` quando há playlist (que não seja a biblioteca), senão `Artista — Álbum`.
 
-### 5.3 Execução de AppleScript
-- Fila serial própria (utility), nunca na main thread. Scripts compilados uma vez.
-- Erro `-1743` (sem permissão de Automação) → `PermissionIssue.automation(player)`; a UI oferece abrir `x-apple.systempreferences:com.apple.preference.security?Privacy_Automation`.
+### 5.0 Provedor do sistema (`SystemNowPlayingProvider`, primário)
+- Lê o MediaRemote via dlopen do framework privado (sem link direto, sem permissão): título, artista, álbum, capa, duração, posição, tocando/pausado, app de origem. Cobre Spotify, Música, navegadores, VLC e qualquer outro.
+- Comandos de transporte (play/pause/próxima/anterior) via `MRMediaRemoteSendCommand`. Seek/shuffle/repeat só se o header confirmar suporte; senão o botão some ou cai no fallback.
+- Se o sistema não expõe nada (framework ausente ou restrito), cai para os provedores legados abaixo. O MediaRemote reflete o "now playing" do SO, então quando tem faixa ele sempre vence a seleção.
 
 ### 5.4 Seleção do player (`PlayerSelection`, puro)
 1. O player que passou para `playing` mais recentemente vence.
@@ -111,12 +112,12 @@ Tipos do executável que atravessam camadas (nomes fixos):
 - Hosting view com `acceptsFirstMouse = true` (clique funciona sem ativar o app).
 - Cantos arredondados no estilo da Dock (raio ≈ 0,3 × altura), material glass/vibrancy.
 
-### 6.2 Geometria da Dock (`DockGeometry`)
-- **Fonte principal:** Accessibility API. `AXUIElementCreateApplication(pid da Dock)` → filho `AXList` → `AXPosition` + `AXSize`, convertendo de coordenadas top-left (Quartz) para bottom-left (AppKit).
-- Pede permissão uma vez com `AXIsProcessTrustedWithOptions(prompt: true)`; se negada, usa o fallback e mostra aviso no menu de contexto.
-- **Fallback:** altura = `visibleFrame.minY − frame.minY` da tela principal; largura estimada por `com.apple.dock` (`tilesize`, número de `persistent-apps` + `persistent-others` + recentes); a borda esquerda da Dock é `centro − largura/2`.
+### 6.2 Geometria da Dock (`DockGeometry`, sem Acessibilidade)
+- **Nenhuma permissão.** A Dock é estimada de forma conservadora a partir de `com.apple.dock` (tilesize, largesize, magnification, persistent-apps/others, recents) + apps rodando via NSWorkspace: conta Lixeira, separadores, margem de segurança e headroom de magnification. Função pura `estimateDockFrame` em `NowDockCore`, testada.
+- Altura = tilesize + 16; base = fundo da tela + margem inferior (padrão 6 pt, ajustável via `defaults write dev.nowdock.NowDock dockBottomMargin -float X`).
+- Largura limitada à tela (a Dock real encolhe os tiles para caber). A estimativa erra sempre para o lado seguro: folga maior em vez de sobreposição.
 - **Orientação:** `orientation` em `com.apple.dock`. Se não for `bottom`, `isUnavailable = true` e o painel some.
-- **Recalcular em:** `didChangeScreenParametersNotification`, `NSWorkspace.didLaunch/didTerminateApplication`, distribuída `com.apple.dock.prefchanged`, `activeSpaceDidChangeNotification`. Debounce 300 ms. Opcional: `AXObserver` com `kAXResizedNotification`.
+- **Recalcular em:** `didChangeScreenParametersNotification`, `NSWorkspace.didLaunch/didTerminateApplication`, distribuída `com.apple.dock.prefchanged`, `activeSpaceDidChangeNotification`. Debounce 300 ms.
 
 ### 6.3 Cálculo do frame (`PlacementMath`, puro e testado)
 
@@ -149,9 +150,7 @@ Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **comp
 
 ## 8. Build, assinatura e permissões
 
-- `Scripts/build-app.sh`: `swift build -c release`, monta `build/NowDock.app`, assina com hardened runtime + entitlements.
-- Assinatura: `NOWDOCK_SIGN_IDENTITY` se definido (recomendado: certificado autoassinado "NowDock Dev" no Acesso às Chaves); senão ad-hoc. **Com ad-hoc, o macOS pode pedir de novo Acessibilidade/Automação a cada rebuild.**
-- Permissões: Acessibilidade (medir a Dock), Automação para Spotify e Música.
+- Permissões: **nenhuma obrigatória.** Automação para Spotify/Música só é usada se você já liberou (enriquecimento legado); o app nunca dispara o prompt sozinho — no máximo sugere no menu.
 - Distribuição futura: Developer ID + notarização + DMG (precisa de conta Apple Developer).
 
 ## 9. Fases
@@ -161,7 +160,7 @@ Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **comp
 3. **UI completa** — três layouts, glass, menu de contexto, estado vazio, avisos de permissão.
 4. **Fullscreen e auto-hide.**
 5. **Polimento e medição** — login item, multi-monitor, medir CPU/memória.
-6. **Players genéricos (precisa de aprovação)** — MediaRemote foi restrito no macOS 15.4+; o caminho viável é o `mediaremote-adapter` (BSD-3), helper rodando via `/usr/bin/perl`. Entra como `SystemNowPlayingProvider` no mesmo contrato.
+6. **Players genéricos (incorporado ao MVP)** — MediaRemote nativo via dlopen, sem dependência de terceiros. O `mediaremote-adapter` foi descartado.
 
 ## 10. Verificação
 
