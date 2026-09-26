@@ -31,4 +31,4 @@ body:
     id: extras
     attributes:
       label: Logs, screenshots ou observações
-      description: Arraste screenshots para cá. Logs: Console.app, processo NowDock.
+      description: "Arraste screenshots para cá. Logs: Console.app, processo NowDock."

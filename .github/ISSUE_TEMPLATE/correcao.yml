@@ -6,7 +6,7 @@ body:
     id: problema
     attributes:
       label: O que está errado?
-      description: Descreva o bug ou vincule a issue existente (ex.: #12).
+      description: "Descreva o bug ou vincule a issue existente (ex.: #12)."
     validations:
       required: true
   - type: textarea
