@@ -1,13 +1,17 @@
+import CoreGraphics
 import Foundation
 
 public enum PlayerID: String, Sendable, CaseIterable, Codable {
     case spotify
     case appleMusic
+    /// Any player surfaced through the system MediaRemote service (browsers, VLC, etc.).
+    case system
 
     public var bundleIdentifier: String {
         switch self {
         case .spotify: "com.spotify.client"
         case .appleMusic: "com.apple.Music"
+        case .system: ""
         }
     }
 
@@ -15,6 +19,7 @@ public enum PlayerID: String, Sendable, CaseIterable, Codable {
         switch self {
         case .spotify: "Spotify"
         case .appleMusic: "Música"
+        case .system: "Sistema"
         }
     }
 }
@@ -61,11 +66,14 @@ public enum PlayerCommand: Hashable, Sendable {
 
 public enum PermissionIssue: Hashable, Sendable {
     case automation(PlayerID)
-    case accessibility
 }
 
 public struct NowPlayingState: Equatable, Sendable {
     public var player: PlayerID?
+    /// Friendly player name when `.system` (e.g. "VLC", "Google Chrome"). Nil otherwise.
+    public var playerDisplayName: String?
+    /// Bundle id of the `.system` player, for activation. Nil otherwise.
+    public var playerBundleID: String?
     public var track: TrackInfo?
     public var status: PlaybackStatus
     /// Position in seconds at `positionTimestamp`.
@@ -81,6 +89,8 @@ public struct NowPlayingState: Equatable, Sendable {
 
     public init(
         player: PlayerID? = nil,
+        playerDisplayName: String? = nil,
+        playerBundleID: String? = nil,
         track: TrackInfo? = nil,
         status: PlaybackStatus = .stopped,
         position: TimeInterval = 0,
@@ -93,6 +103,8 @@ public struct NowPlayingState: Equatable, Sendable {
         permissionIssues: Set<PermissionIssue> = []
     ) {
         self.player = player
+        self.playerDisplayName = playerDisplayName
+        self.playerBundleID = playerBundleID
         self.track = track
         self.status = status
         self.position = position
@@ -150,7 +162,7 @@ public struct PlacementInput: Equatable, Sendable {
     public var maxWidth: CGFloat
     public var minWidth: CGFloat
 
-    public init(screenFrame: CGRect, dockFrame: CGRect, edgeGap: CGFloat, maxWidth: CGFloat = 560, minWidth: CGFloat = 220) {
+    public init(screenFrame: CGRect, dockFrame: CGRect, edgeGap: CGFloat, maxWidth: CGFloat = 560, minWidth: CGFloat = 200) {
         self.screenFrame = screenFrame
         self.dockFrame = dockFrame
         self.edgeGap = edgeGap
