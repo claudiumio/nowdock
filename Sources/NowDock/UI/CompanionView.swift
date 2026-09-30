@@ -24,6 +24,7 @@ struct CompanionView: View {
             }
             .padding(.horizontal, metrics.pad)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
+            .background(.regularMaterial)
         }
         .contextMenu { contextMenu }
     }
@@ -109,11 +110,7 @@ struct CompanionView: View {
             artworkTile(side: metrics.art)
                 .onTapGesture(perform: openCurrentPlayer)
             VStack(alignment: .leading, spacing: metrics.gap * 0.35) {
-                playingTitle(metrics: metrics)
-                Text(subtitleLine)
-                    .font(.system(size: metrics.subtitle))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                combinedTitle(metrics: metrics)
                 progressRow(metrics: metrics, showTimes: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -127,11 +124,7 @@ struct CompanionView: View {
             artworkTile(side: metrics.art)
                 .onTapGesture(perform: openCurrentPlayer)
             VStack(alignment: .leading, spacing: metrics.gap * 0.35) {
-                playingTitle(metrics: metrics)
-                Text(subtitleLine)
-                    .font(.system(size: metrics.subtitle))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                combinedTitle(metrics: metrics)
                 progressRow(metrics: metrics, showTimes: false)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,6 +147,18 @@ struct CompanionView: View {
         Text(center.state.track?.title ?? "")
             .font(.system(size: metrics.title, weight: .semibold))
             .foregroundStyle(.primary)
+            .lineLimit(1)
+            .onTapGesture(perform: openCurrentPlayer)
+    }
+
+    private func combinedTitle(metrics: LayoutMetrics) -> some View {
+        let suffix = subtitleLine.isEmpty ? "" : " · \(subtitleLine)"
+        return (Text(center.state.track?.title ?? "")
+            .font(.system(size: metrics.title, weight: .semibold))
+            .foregroundStyle(.primary)
+            + Text(suffix)
+            .font(.system(size: metrics.subtitle))
+            .foregroundStyle(.secondary))
             .lineLimit(1)
             .onTapGesture(perform: openCurrentPlayer)
     }
@@ -188,7 +193,7 @@ struct CompanionView: View {
                 center.perform(.seek(position))
             }
             if showTimes {
-                Text(Self.formatTime(duration ?? 0))
+                Text(Self.formatRemaining(elapsed: elapsed, duration: duration))
                     .font(.system(size: metrics.time, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -215,13 +220,7 @@ struct CompanionView: View {
                     center.perform(.previous)
                 }
             }
-            ControlButton(
-                system: center.state.status == .playing ? "pause.fill" : "play.fill",
-                size: metrics.play,
-                enabled: commands.contains(.togglePlayPause)
-            ) {
-                center.perform(.togglePlayPause)
-            }
+            playButton(metrics: metrics, enabled: commands.contains(.togglePlayPause))
             if layout != .minimal {
                 ControlButton(system: "forward.fill", size: metrics.button, enabled: commands.contains(.next)) {
                     center.perform(.next)
@@ -238,6 +237,23 @@ struct CompanionView: View {
                 }
             }
         }
+    }
+
+    private func playButton(metrics: LayoutMetrics, enabled: Bool) -> some View {
+        Button {
+            center.perform(.togglePlayPause)
+        } label: {
+            ZStack {
+                Circle().fill(.primary)
+                Image(systemName: center.state.status == .playing ? "pause.fill" : "play.fill")
+                    .font(.system(size: metrics.play, weight: .medium))
+                    .foregroundStyle(.background)
+            }
+            .frame(width: metrics.playCircle, height: metrics.playCircle)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.35)
     }
 
     private func artworkTile(side: CGFloat) -> some View {
@@ -329,6 +345,12 @@ struct CompanionView: View {
         let total = max(0, Int(value.rounded(.down)))
         return String(format: "%d:%02d", total / 60, total % 60)
     }
+
+    private static func formatRemaining(elapsed: TimeInterval, duration: TimeInterval?) -> String {
+        let remaining = max(0, (duration ?? 0) - elapsed)
+        let total = Int(remaining.rounded(.down))
+        return String(format: "-%d:%02d", total / 60, total % 60)
+    }
 }
 
 private struct LayoutMetrics {
@@ -339,6 +361,7 @@ private struct LayoutMetrics {
     var subtitle: CGFloat { max(8, height * 0.20) }
     var time: CGFloat { max(7, height * 0.16) }
     var play: CGFloat { max(14, height * 0.42) }
+    var playCircle: CGFloat { max(20, height * 0.52) }
     var button: CGFloat { max(11, height * 0.30) }
     var seek: CGFloat { max(3, height * 0.06) }
     var gap: CGFloat { max(4, height * 0.08) }
@@ -380,11 +403,17 @@ private struct SeekBar: View {
                 guard let duration, duration > 0 else { return 0 }
                 return CGFloat(min(1, max(0, elapsed / duration)))
             }()
+            let knob = barHeight * 2.2
             ZStack(alignment: .leading) {
                 Capsule().fill(.primary.opacity(0.15))
                 Capsule()
-                    .fill(.primary.opacity(0.75))
+                    .fill(Color.accentColor)
                     .frame(width: max(barHeight, geo.size.width * progress))
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: knob, height: knob)
+                    .shadow(radius: 1)
+                    .offset(x: min(max(0, geo.size.width * progress - knob / 2), max(0, geo.size.width - knob)))
             }
             .contentShape(Rectangle())
             .gesture(

@@ -110,7 +110,7 @@ Tipos do executável que atravessam camadas (nomes fixos):
 - Nível `CGWindowLevelForKey(.dockWindow)` — o mesmo da Dock.
 - `collectionBehavior: [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]` — a visibilidade em fullscreen é controlada por nós (§6.4).
 - Hosting view com `acceptsFirstMouse = true` (clique funciona sem ativar o app).
-- Cantos arredondados no estilo da Dock (raio ≈ 0,3 × altura), material glass/vibrancy.
+- Cantos arredondados quase-cápsula (raio = 0,5 × altura), material glass/vibrancy.
 
 ### 6.2 Geometria da Dock (`DockGeometry`, sem Acessibilidade)
 - **Nenhuma permissão.** A Dock é estimada de forma conservadora a partir de `com.apple.dock` (tilesize, largesize, magnification, persistent-apps/others, recents) + apps rodando via NSWorkspace: conta Lixeira, separadores, margem de segurança e headroom de magnification. Função pura `estimateDockFrame` em `NowDockCore`, testada.
@@ -142,7 +142,7 @@ Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **comp
 
 - Altura típica da Dock: 55–80 pt. Tudo proporcional à altura.
 - Esquerda: capa (placeholder com ícone de nota).
-- Centro: título (semibold, 1 linha), `Artista — Álbum/Playlist`, barra de progresso fina com tempos (layout completo). Clicar/arrastar faz seek.
+- Centro: linha única combinada — título semibold + `Artista — Álbum/Playlist` secundário (truncada), barra de progresso fina com elapsed à esquerda e restante (`-M:SS`) à direita (layout completo). Clicar/arrastar faz seek.
 - Direita: shuffle, anterior, play/pause (maior), próxima, repeat (`repeat.1` quando `.one`). Desativados quando não suportados.
 - Clique na capa/título → ativa o player.
 - **Menu de contexto:** player atual, abrir Spotify/Música, permissões pendentes, "Abrir ao iniciar sessão" (`SMAppService.mainApp`), folga da borda, "Sair do NowDock".

@@ -38,7 +38,7 @@ final class CompanionPanel: NSPanel {
 
     private func applyCornerRadius() {
         host.wantsLayer = true
-        host.layer?.cornerRadius = frame.height * 0.3
+        host.layer?.cornerRadius = frame.height * 0.5
         host.layer?.cornerCurve = .continuous
         host.layer?.masksToBounds = true
     }
