@@ -5,7 +5,7 @@ import Testing
 @Test func placementFullHugsDock() {
     expectVisible(
         makeInput(dockMinX: 800),
-        frame: CGRect(x: 388, y: 4, width: 400, height: 70),
+        frame: CGRect(x: 228, y: 4, width: 560, height: 70),
         layout: .full
     )
 }
@@ -16,7 +16,7 @@ import Testing
         dockFrame: CGRect(x: 2820, y: 6, width: 500, height: 64),
         dockGap: 12
     )
-    expectVisible(input, frame: CGRect(x: 2408, y: 6, width: 400, height: 64), layout: .full)
+    expectVisible(input, frame: CGRect(x: 2248, y: 6, width: 560, height: 64), layout: .full)
 }
 
 @Test func placementExactFullSpan() {
@@ -30,7 +30,7 @@ import Testing
 @Test func placementOnePointUnderFull() {
     expectVisible(
         makeInput(dockMinX: 417),
-        frame: CGRect(x: 125, y: 4, width: 280, height: 70),
+        frame: CGRect(x: 6, y: 4, width: 399, height: 70),
         layout: .compact
     )
 }
@@ -46,22 +46,30 @@ import Testing
 @Test func placementOnePointUnderCompact() {
     expectVisible(
         makeInput(dockMinX: 297),
-        frame: CGRect(x: 85, y: 4, width: 200, height: 70),
+        frame: CGRect(x: 6, y: 4, width: 279, height: 70),
         layout: .minimal
     )
 }
 
-@Test func placementExactMinimalSpan() {
+@Test func placementTightMinimalKeepsInvariantWidth() {
     expectVisible(
-        makeInput(dockMinX: 218),
-        frame: CGRect(x: 6, y: 4, width: 200, height: 70),
+        makeInput(dockMinX: 170),
+        frame: CGRect(x: 6, y: 4, width: 152, height: 70),
         layout: .minimal
     )
 }
 
-@Test func placementHiddenBelowMinimal() {
-    #expect(placement(for: makeInput(dockMinX: 217)) == .hidden)
-    #expect(placement(for: makeInput(dockMinX: 124)) == .hidden)
+@Test func placementExactMinimalFloor() {
+    expectVisible(
+        makeInput(dockMinX: 138),
+        frame: CGRect(x: 6, y: 4, width: 120, height: 70),
+        layout: .minimal
+    )
+}
+
+@Test func placementHiddenBelowMinimalFloor() {
+    #expect(placement(for: makeInput(dockMinX: 137)) == .hidden)
+    #expect(placement(for: makeInput(dockMinX: 60)) == .hidden)
 }
 
 @Test func placementHiddenWhenHeightIsZero() {
@@ -73,10 +81,10 @@ import Testing
     #expect(placement(for: makeInput(dockMinX: 1440)) == .hidden)
 }
 
-@Test func placementLargePresetShiftsLeftKeepsRung() {
+@Test func placementLargePresetShiftsLeftKeepsWidth() {
     expectVisible(
         makeInput(dockMinX: 800, dockGap: 28),
-        frame: CGRect(x: 372, y: 4, width: 400, height: 70),
+        frame: CGRect(x: 212, y: 4, width: 560, height: 70),
         layout: .full
     )
 }
@@ -84,7 +92,7 @@ import Testing
 @Test func placementGapBelowFloorClampsToMinimum() {
     expectVisible(
         makeInput(dockMinX: 800, dockGap: 0),
-        frame: CGRect(x: 388, y: 4, width: 400, height: 70),
+        frame: CGRect(x: 228, y: 4, width: 560, height: 70),
         layout: .full
     )
 }
@@ -94,18 +102,19 @@ import Testing
     #expect(placement(for: makeInput(dockMinX: 800, dockGap: .infinity)) == .hidden)
 }
 
-@Test func placementSweepHoldsHugAndRungInvariants() {
+@Test func placementSweepHoldsHugAndThresholdInvariants() {
     for gap: CGFloat in [12, 18, 28] {
-        for dockMinX: CGFloat in stride(from: 200.0, through: 1200.0, by: 7) {
+        for dockMinX: CGFloat in stride(from: 100.0, through: 1200.0, by: 7) {
             let input = makeInput(dockMinX: dockMinX, dockGap: gap)
             let span = dockMinX - gap - 6
+            let width = min(PanelLayout.maxWidth, span)
             switch placement(for: input) {
             case .visible(let placed):
-                #expect(span >= 200)
+                #expect(placed.frame.width == width)
                 #expect(placed.frame.maxX == dockMinX - gap)
-                #expect(placed.frame.width == placed.layout.rungWidth)
+                #expect(placed.layout == PanelLayout.layout(forWidth: width))
             case .hidden:
-                #expect(span < 200)
+                #expect(PanelLayout.layout(forWidth: width) == nil)
             }
         }
     }
@@ -128,5 +137,5 @@ private func expectVisible(_ input: PlacementInput, frame: CGRect, layout: Panel
     #expect(placed.layout == layout)
     let appliedGap = max(EdgeGapPreset.minimum, input.dockGap)
     #expect(placed.frame.maxX == input.dockFrame.minX - appliedGap)
-    #expect(placed.frame.width == placed.layout.rungWidth)
+    #expect(placed.frame.width <= PanelLayout.maxWidth)
 }

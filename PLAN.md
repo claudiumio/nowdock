@@ -122,14 +122,16 @@ Tipos do executável que atravessam camadas (nomes fixos):
 ### 6.3 Cálculo do frame (`PlacementMath`, puro e testado)
 
 ```
-x      = screen.minX + edgeGap
+right  = dock.minX − dockGap (min 12)
+left   = screen.minX + 6
+width  = min(560, right − left)
+x      = right − width
 y      = dock.minY
 height = dock.height
-width  = min(maxWidth, dock.minX − edgeGap − x)
-se width < minWidth → .hidden
+layout = width ≥ 400 ? completo : ≥ 280 ? compacto : ≥ 120 ? mínimo : .hidden
 ```
 
-Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **compacto** (300–420: sem shuffle/repeat e sem tempos), **mínimo** (220–300: capa + título + play/pause).
+Largura fluida: a pílula ocupa todo o espaço entre a borda da tela e a Dock (teto de 560 pt, aí encosta no lado da Dock). **Completo** (≥ 400 pt: capa + linha combinada + progresso com tempos + 5 botões), **compacto** (280–400: capa + linha combinada + progresso sem tempos + anterior/play/próxima), **mínimo** (120–280: título + artista + anterior/play/próxima com frames compactos, sem capa). Título, artista e transporte aparecem em qualquer largura visível.
 
 ### 6.4 Fullscreen e auto-hide
 - **Detecção:** em `activeSpaceDidChange` e `didActivateApplication`, `CGWindowListCopyWindowInfo(.optionOnScreenOnly, .excludeDesktopElements)` → janela de layer 0, de outro processo, com bounds iguais ao frame da tela da Dock. Não precisa de Gravação de Tela.

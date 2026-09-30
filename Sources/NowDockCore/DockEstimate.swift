@@ -56,3 +56,25 @@ public func estimateDockFrame(
         height: height
     )
 }
+
+/// Minimal view of a running process for tile counting. Lives here so the
+/// predicate stays pure and tested; AppKit mapping happens in `DockGeometry`.
+public struct RunningApp: Sendable, Equatable {
+    public var isRegular: Bool
+    public var bundleID: String?
+
+    public init(isRegular: Bool, bundleID: String? = nil) {
+        self.isRegular = isRegular
+        self.bundleID = bundleID
+    }
+}
+
+/// Unpinned running apps that occupy Dock tiles. A process without a bundle
+/// identifier can never be a tile (CLI tools, daemons), so it counts as zero.
+public func runningExtraCount(apps: [RunningApp], pinned: Set<String>) -> Int {
+    apps.count {
+        guard $0.isRegular else { return false }
+        guard let bid = $0.bundleID else { return false }
+        return !pinned.contains(bid)
+    }
+}

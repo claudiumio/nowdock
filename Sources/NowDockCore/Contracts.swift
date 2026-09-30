@@ -134,20 +134,23 @@ public struct NowPlayingState: Equatable, Sendable {
 }
 
 public enum PanelLayout: String, Sendable, Equatable, CaseIterable {
-    /// Art, two text lines, progress with times, shuffle, previous, play, next, repeat.
+    /// Art, combined title line, progress with times, shuffle, previous, play, next, repeat.
     case full
-    /// Art, two text lines, progress, previous, play, next.
+    /// Art, combined title line, progress, previous, play, next.
     case compact
-    /// Art, title, play. One row. No second row.
+    /// Title, artist, previous, play, next. One row. No art.
     case minimal
 
-    /// Module-internal. The only width table. The app reads `PlacedPanel.frame.width`.
-    var rungWidth: CGFloat {
-        switch self {
-        case .full: 400
-        case .compact: 280
-        case .minimal: 200
-        }
+    /// Rendered-width cap. Beyond this the pill hugs the Dock side and stops growing.
+    public static let maxWidth: CGFloat = 560
+
+    /// Layout for a rendered width, or nil when even squeezed transport + a text
+    /// sliver cannot fit. Keep in sync with `ControlButton` compact frames.
+    public static func layout(forWidth width: CGFloat) -> PanelLayout? {
+        if width >= 400 { return .full }
+        if width >= 280 { return .compact }
+        if width >= 120 { return .minimal }
+        return nil
     }
 }
 
@@ -186,14 +189,6 @@ public struct PlacementInput: Equatable, Sendable {
 public struct PlacedPanel: Equatable, Sendable {
     public let frame: CGRect
     public let layout: PanelLayout
-
-    /// Traps if `frame.width` is not `layout.rungWidth`.
-    /// Only `placement(for:)` constructs this.
-    init(frame: CGRect, layout: PanelLayout) {
-        precondition(frame.width == layout.rungWidth)
-        self.frame = frame
-        self.layout = layout
-    }
 }
 
 public enum PlacementResult: Equatable, Sendable {

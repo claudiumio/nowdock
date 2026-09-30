@@ -45,3 +45,13 @@ import Testing
     #expect(frame.minY == 92)
     #expect(frame.midX == screen.midX)
 }
+
+@Test func runningExtrasIgnoresProcessesWithoutBundleID() {
+    let apps = [
+        RunningApp(isRegular: true, bundleID: "com.example.unpinned"),
+        RunningApp(isRegular: true, bundleID: nil),
+        RunningApp(isRegular: false, bundleID: nil),
+        RunningApp(isRegular: true, bundleID: "com.example.pinned"),
+    ]
+    #expect(runningExtraCount(apps: apps, pinned: ["com.example.pinned"]) == 1)
+}

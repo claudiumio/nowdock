@@ -89,11 +89,13 @@ enum DockGeometry {
         })
         // Exact diff: a count subtraction misses unpinned running apps when
         // fewer apps run than are pinned (3 invisible tiles ≈ 160 px of overlap).
-        let runningExtras = NSWorkspace.shared.runningApplications.filter {
-            guard $0.activationPolicy == .regular else { return false }
-            guard let bid = $0.bundleIdentifier else { return true }
-            return !pinnedBundles.contains(bid)
-        }.count
+        let running = NSWorkspace.shared.runningApplications.map {
+            RunningApp(
+                isRegular: $0.activationPolicy == .regular,
+                bundleID: $0.bundleIdentifier
+            )
+        }
+        let runningExtras = runningExtraCount(apps: running, pinned: pinnedBundles)
         return DockPrefs(
             tileSize: CGFloat(rawTile > 0 ? rawTile : 48),
             largeSize: CGFloat(rawLarge > 0 ? rawLarge : 128),

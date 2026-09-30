@@ -135,10 +135,14 @@ struct CompanionView: View {
     @ViewBuilder
     private func minimalRow(metrics: LayoutMetrics) -> some View {
         HStack(spacing: metrics.gap) {
-            artworkTile(side: metrics.art)
-                .onTapGesture(perform: openCurrentPlayer)
-            playingTitle(metrics: metrics)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: metrics.gap * 0.35) {
+                playingTitle(metrics: metrics)
+                Text(subtitleLine)
+                    .font(.system(size: metrics.subtitle))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             controls(metrics: metrics, layout: .minimal)
         }
     }
@@ -215,16 +219,12 @@ struct CompanionView: View {
                     center.perform(.setShuffle(!(center.state.shuffle ?? false)))
                 }
             }
-            if layout != .minimal {
-                ControlButton(system: "backward.fill", size: metrics.button, enabled: commands.contains(.previous)) {
-                    center.perform(.previous)
-                }
+            ControlButton(system: "backward.fill", size: metrics.button, enabled: commands.contains(.previous), compact: layout == .minimal) {
+                center.perform(.previous)
             }
             playButton(metrics: metrics, enabled: commands.contains(.togglePlayPause))
-            if layout != .minimal {
-                ControlButton(system: "forward.fill", size: metrics.button, enabled: commands.contains(.next)) {
-                    center.perform(.next)
-                }
+            ControlButton(system: "forward.fill", size: metrics.button, enabled: commands.contains(.next), compact: layout == .minimal) {
+                center.perform(.next)
             }
             if layout == .full {
                 ControlButton(
@@ -440,6 +440,7 @@ private struct ControlButton: View {
     let size: CGFloat
     var enabled: Bool = true
     var emphasized: Bool = false
+    var compact: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -447,7 +448,7 @@ private struct ControlButton: View {
             Image(systemName: system)
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(emphasized ? Color.accentColor : Color.primary)
-                .frame(width: size * 1.55, height: size * 1.55)
+                .frame(width: size * (compact ? 1.15 : 1.55), height: size * (compact ? 1.15 : 1.55))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
