@@ -22,3 +22,7 @@ Native macOS "now playing" companion that sits to the left of the Dock. Full pla
 - Event-driven only: no polling timers. The only allowed periodic work is the 1 Hz progress redraw and the 15 s position resync, both **only while playing and visible**.
 - Never send AppleScript to a player that isn't running (it would launch it). Check `NSRunningApplication` first.
 - AppleScript runs off the main thread on one serial queue; compile scripts once.
+
+## Code Map
+
+- `.github`: project configuration

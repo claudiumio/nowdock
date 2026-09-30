@@ -30,6 +30,32 @@ struct CompanionView: View {
 
     @ViewBuilder
     private func emptyState(metrics: LayoutMetrics) -> some View {
+        let layout = window.layout
+        switch layout {
+        case .full:
+            fullEmptyRow(metrics: metrics)
+        case .compact:
+            compactEmptyRow(metrics: metrics)
+        case .minimal:
+            minimalEmptyRow(metrics: metrics)
+        }
+    }
+
+    @ViewBuilder
+    private func playingState(metrics: LayoutMetrics) -> some View {
+        let layout = window.layout
+        switch layout {
+        case .full:
+            fullRow(metrics: metrics)
+        case .compact:
+            compactRow(metrics: metrics)
+        case .minimal:
+            minimalRow(metrics: metrics)
+        }
+    }
+
+    @ViewBuilder
+    private func fullEmptyRow(metrics: LayoutMetrics) -> some View {
         HStack(spacing: metrics.gap) {
             artworkTile(side: metrics.art)
             Text("Nada tocando")
@@ -37,9 +63,38 @@ struct CompanionView: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             Spacer(minLength: 0)
-            ForEach(center.installedPlayers, id: \.self) { id in
-                Button("Abrir \(center.state.playerDisplayName ?? id.displayName)") {
-                    center.openPlayer(id)
+            openButton(metrics: metrics)
+        }
+    }
+
+    @ViewBuilder
+    private func compactEmptyRow(metrics: LayoutMetrics) -> some View {
+        HStack(spacing: metrics.gap) {
+            artworkTile(side: metrics.art)
+            Text("Nada tocando")
+                .font(.system(size: metrics.title, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            openButton(metrics: metrics)
+        }
+    }
+
+    @ViewBuilder
+    private func minimalEmptyRow(metrics: LayoutMetrics) -> some View {
+        HStack(spacing: metrics.gap) {
+            artworkTile(side: metrics.art)
+            Spacer(minLength: 0)
+            openButton(metrics: metrics)
+        }
+    }
+
+    private func openButton(metrics: LayoutMetrics) -> some View {
+        let players = center.installedPlayers
+        return Group {
+            if let first = players.first {
+                Button("Abrir \(center.state.playerDisplayName ?? first.displayName)") {
+                    center.openPlayer(first)
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: metrics.subtitle, weight: .medium))
@@ -49,30 +104,58 @@ struct CompanionView: View {
     }
 
     @ViewBuilder
-    private func playingState(metrics: LayoutMetrics) -> some View {
-        let layout = window.layout
+    private func fullRow(metrics: LayoutMetrics) -> some View {
         HStack(spacing: metrics.gap) {
             artworkTile(side: metrics.art)
                 .onTapGesture(perform: openCurrentPlayer)
             VStack(alignment: .leading, spacing: metrics.gap * 0.35) {
-                Text(center.state.track?.title ?? "")
-                    .font(.system(size: metrics.title, weight: .semibold))
-                    .foregroundStyle(.primary)
+                playingTitle(metrics: metrics)
+                Text(subtitleLine)
+                    .font(.system(size: metrics.subtitle))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .onTapGesture(perform: openCurrentPlayer)
-                if layout != .minimal {
-                    Text(subtitleLine)
-                        .font(.system(size: metrics.subtitle))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                if layout != .minimal {
-                    progressRow(metrics: metrics, showTimes: layout == .full)
-                }
+                progressRow(metrics: metrics, showTimes: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            controls(metrics: metrics, layout: layout)
+            controls(metrics: metrics, layout: .full)
         }
+    }
+
+    @ViewBuilder
+    private func compactRow(metrics: LayoutMetrics) -> some View {
+        HStack(spacing: metrics.gap) {
+            artworkTile(side: metrics.art)
+                .onTapGesture(perform: openCurrentPlayer)
+            VStack(alignment: .leading, spacing: metrics.gap * 0.35) {
+                playingTitle(metrics: metrics)
+                Text(subtitleLine)
+                    .font(.system(size: metrics.subtitle))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                progressRow(metrics: metrics, showTimes: false)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            controls(metrics: metrics, layout: .compact)
+        }
+    }
+
+    @ViewBuilder
+    private func minimalRow(metrics: LayoutMetrics) -> some View {
+        HStack(spacing: metrics.gap) {
+            artworkTile(side: metrics.art)
+                .onTapGesture(perform: openCurrentPlayer)
+            playingTitle(metrics: metrics)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            controls(metrics: metrics, layout: .minimal)
+        }
+    }
+
+    private func playingTitle(metrics: LayoutMetrics) -> some View {
+        Text(center.state.track?.title ?? "")
+            .font(.system(size: metrics.title, weight: .semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .onTapGesture(perform: openCurrentPlayer)
     }
 
     @ViewBuilder
