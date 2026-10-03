@@ -2,7 +2,8 @@
 set -e
 cd "$(dirname "$0")/.."
 
-swift build -c release
+swift build -c release --triple arm64-apple-macosx
+swift build -c release --triple x86_64-apple-macosx
 
 APP="build/NowDock.app"
 CONTENTS="$APP/Contents"
@@ -12,8 +13,9 @@ RES="$CONTENTS/Resources"
 rm -rf "$APP"
 mkdir -p "$MACOS" "$RES"
 
-BIN="$(swift build -c release --show-bin-path)/NowDock"
-cp "$BIN" "$MACOS/NowDock"
+ARM_BIN="$(swift build -c release --triple arm64-apple-macosx --show-bin-path)/NowDock"
+INTEL_BIN="$(swift build -c release --triple x86_64-apple-macosx --show-bin-path)/NowDock"
+lipo -create "$ARM_BIN" "$INTEL_BIN" -output "$MACOS/NowDock"
 chmod +x "$MACOS/NowDock"
 cp Resources/Info.plist "$CONTENTS/Info.plist"
 printf 'APPL????' > "$CONTENTS/PkgInfo"

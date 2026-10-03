@@ -29,8 +29,16 @@ enum DockGeometry {
         let screen = fallbackDockScreen()
         let screenFrame = screen?.frame ?? .zero
         let prefs = currentPrefs()
+        var frame = estimateDockFrame(screenFrame: screenFrame, prefs: prefs, bottomMargin: bottomMargin)
+        // Escape hatch for fine-tuning without a rebuild:
+        // defaults write dev.nowdock.NowDock dockWidthAdjust -float 20
+        let adjust = UserDefaults.standard.object(forKey: "dockWidthAdjust") as? NSNumber
+        if let adjust, adjust.doubleValue != 0 {
+            frame.size.width += CGFloat(adjust.doubleValue)
+            frame.origin.x -= CGFloat(adjust.doubleValue) / 2
+        }
         return Snapshot(
-            frame: estimateDockFrame(screenFrame: screenFrame, prefs: prefs, bottomMargin: bottomMargin),
+            frame: frame,
             screenFrame: screenFrame,
             orientation: orientation,
             autohide: autohide
@@ -75,17 +83,27 @@ enum DockGeometry {
         let recentsCount = showRecents
             ? ((defaults.array(forKey: "recent-apps") as? [Any])?.count ?? 0)
             : 0
-        let runningRegular = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular }
-            .count
+        let pinned = (defaults.array(forKey: "persistent-apps") as? [[String: Any]]) ?? []
+        let pinnedBundles = Set(pinned.compactMap {
+            ($0["tile-data"] as? [String: Any])?["bundle-identifier"] as? String
+        })
+        // Exact diff: a count subtraction misses unpinned running apps when
+        // fewer apps run than are pinned (3 invisible tiles ≈ 160 px of overlap).
+        let running = NSWorkspace.shared.runningApplications.map {
+            RunningApp(
+                isRegular: $0.activationPolicy == .regular,
+                bundleID: $0.bundleIdentifier
+            )
+        }
+        let runningExtras = runningExtraCount(apps: running, pinned: pinnedBundles)
         return DockPrefs(
             tileSize: CGFloat(rawTile > 0 ? rawTile : 48),
             largeSize: CGFloat(rawLarge > 0 ? rawLarge : 128),
             magnification: defaults.bool(forKey: "magnification"),
-            persistentCount: persistentCount,
+            persistentCount: pinned.count,
             othersCount: othersCount,
             recentsCount: recentsCount,
-            runningExtraCount: max(0, runningRegular - persistentCount)
+            runningExtraCount: runningExtras
         )
     }
 

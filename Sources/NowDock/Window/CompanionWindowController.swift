@@ -114,15 +114,16 @@ final class CompanionWindowController: ObservableObject {
         let input = PlacementInput(
             screenFrame: screenFrame,
             dockFrame: snap.frame,
-            edgeGap: storedGap.value(dockBottomInset: inset)
+            dockGap: storedGap.value(dockBottomInset: inset)
         )
 
         switch placement(for: input) {
-        case .visible(let frame, let newLayout):
-            layout = newLayout
-            panel.setFrame(frame, display: true)
+        case .visible(let placed):
+            layout = placed.layout
+            panel.setFrame(placed.frame, display: true)
             hasPlacement = true
-            Logger.nowDockWindow.info("dock=\(self.rect(snap.frame), privacy: .public) panel=\(self.rect(frame), privacy: .public) layout=\(String(describing: newLayout), privacy: .public)")
+            Logger.nowDockWindow.info("dock=\(self.rect(snap.frame), privacy: .public) panel=\(self.rect(placed.frame), privacy: .public) layout=\(String(describing: placed.layout), privacy: .public)")
+            fullscreen.evaluate()
             applyRevealMode()
         case .hidden:
             hasPlacement = false

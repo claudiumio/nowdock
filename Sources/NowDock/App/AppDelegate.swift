@@ -62,7 +62,7 @@ final class GlassContainerView: NSView {
     }
 
     private func applyCornerRadius() {
-        let radius = bounds.height * 0.3
+        let radius = bounds.height * 0.5
         layer?.cornerRadius = radius
         if #available(macOS 26, *), let glass = effectView as? NSGlassEffectView {
             glass.cornerRadius = radius

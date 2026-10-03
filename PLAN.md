@@ -110,7 +110,7 @@ Tipos do executável que atravessam camadas (nomes fixos):
 - Nível `CGWindowLevelForKey(.dockWindow)` — o mesmo da Dock.
 - `collectionBehavior: [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]` — a visibilidade em fullscreen é controlada por nós (§6.4).
 - Hosting view com `acceptsFirstMouse = true` (clique funciona sem ativar o app).
-- Cantos arredondados no estilo da Dock (raio ≈ 0,3 × altura), material glass/vibrancy.
+- Cantos arredondados quase-cápsula (raio = 0,5 × altura), material glass/vibrancy.
 
 ### 6.2 Geometria da Dock (`DockGeometry`, sem Acessibilidade)
 - **Nenhuma permissão.** A Dock é estimada de forma conservadora a partir de `com.apple.dock` (tilesize, largesize, magnification, persistent-apps/others, recents) + apps rodando via NSWorkspace: conta Lixeira, separadores, margem de segurança e headroom de magnification. Função pura `estimateDockFrame` em `NowDockCore`, testada.
@@ -122,14 +122,16 @@ Tipos do executável que atravessam camadas (nomes fixos):
 ### 6.3 Cálculo do frame (`PlacementMath`, puro e testado)
 
 ```
-x      = screen.minX + edgeGap
+right  = dock.minX − dockGap (min 12)
+left   = screen.minX + 6
+width  = min(560, right − left)
+x      = right − width
 y      = dock.minY
 height = dock.height
-width  = min(maxWidth, dock.minX − edgeGap − x)
-se width < minWidth → .hidden
+layout = width ≥ 400 ? completo : ≥ 280 ? compacto : ≥ 96 ? mínimo : .hidden
 ```
 
-Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **compacto** (300–420: sem shuffle/repeat e sem tempos), **mínimo** (220–300: capa + título + play/pause).
+Largura fluida: a pílula ocupa todo o espaço entre a borda da tela e a Dock (teto de 560 pt, aí encosta no lado da Dock). **Completo** (≥ 400 pt: capa + linha combinada + progresso com tempos + 5 botões), **compacto** (280–400: capa + linha combinada + progresso sem tempos + anterior/play/próxima), **mínimo** (96–280: título e artista em cima, anterior/play/próxima embaixo, sem capa). O conteúdo escala pela largura e altura disponíveis. Título, artista e transporte aparecem em qualquer largura visível.
 
 ### 6.4 Fullscreen e auto-hide
 - **Detecção:** em `activeSpaceDidChange` e `didActivateApplication`, `CGWindowListCopyWindowInfo(.optionOnScreenOnly, .excludeDesktopElements)` → janela de layer 0, de outro processo, com bounds iguais ao frame da tela da Dock. Não precisa de Gravação de Tela.
@@ -142,7 +144,7 @@ Layout por largura: **completo** (≥ 420 pt: todos os botões + tempos), **comp
 
 - Altura típica da Dock: 55–80 pt. Tudo proporcional à altura.
 - Esquerda: capa (placeholder com ícone de nota).
-- Centro: título (semibold, 1 linha), `Artista — Álbum/Playlist`, barra de progresso fina com tempos (layout completo). Clicar/arrastar faz seek.
+- Centro: linha única combinada — título semibold + `Artista — Álbum/Playlist` secundário (truncada), barra de progresso fina com elapsed à esquerda e restante (`-M:SS`) à direita (layout completo). Clicar/arrastar faz seek.
 - Direita: shuffle, anterior, play/pause (maior), próxima, repeat (`repeat.1` quando `.one`). Desativados quando não suportados.
 - Clique na capa/título → ativa o player.
 - **Menu de contexto:** player atual, abrir Spotify/Música, permissões pendentes, "Abrir ao iniciar sessão" (`SMAppService.mainApp`), folga da borda, "Sair do NowDock".

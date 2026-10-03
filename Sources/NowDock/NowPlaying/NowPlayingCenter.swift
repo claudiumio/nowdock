@@ -82,17 +82,29 @@ final class NowPlayingCenter: ObservableObject {
         }
     }
 
-    func openPlayer(_ id: PlayerID) {
+    func requestAutomation(for id: PlayerID) async throws {
+        _ = try await AppleScriptRunner.shared.run(script: tellScript(id, "get player state as text"), for: id)
+        await pullIfRunning(id)
+        publish()
+    }
+
+    func openPlayer(_ id: PlayerID) async throws {
         let bundle: String
         switch id {
         case .system:
-            guard let systemBundle = state.playerBundleID, !systemBundle.isEmpty else { return }
+            guard let systemBundle = state.playerBundleID, !systemBundle.isEmpty else {
+                throw NSError(domain: "dev.nowdock.NowDock", code: 1, userInfo: [NSLocalizedDescriptionKey: "O aplicativo de reprodução não está disponível."])
+            }
             bundle = systemBundle
         case .spotify, .appleMusic:
             bundle = id.bundleIdentifier
         }
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle) else { return }
-        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle) else {
+            throw NSError(domain: "dev.nowdock.NowDock", code: 2, userInfo: [NSLocalizedDescriptionKey: "O aplicativo \(id.displayName) não foi encontrado."])
+        }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
     }
 
     private func providerDidChange() {
@@ -194,7 +206,7 @@ final class NowPlayingCenter: ObservableObject {
                 repeatMode: snap.repeatMode,
                 artworkData: snap.artworkData,
                 artworkID: snap.artworkID,
-                supportedCommands: snap.supported,
+                supportedCommands: snap.permissionIssue == .automation(selected) ? [] : snap.supported,
                 permissionIssues: issues
             )
         } else {

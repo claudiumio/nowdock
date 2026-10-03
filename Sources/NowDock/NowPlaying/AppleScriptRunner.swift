@@ -2,11 +2,24 @@ import AppKit
 import CoreServices
 import NowDockCore
 
-enum RunnerError: Error, Equatable {
+enum RunnerError: Error, Equatable, LocalizedError {
     case playerNotRunning
     case automationDenied(PlayerID)
     case compileFailed
     case executeFailed(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .playerNotRunning:
+            return "Abra o player antes de ativar os controles."
+        case .automationDenied(let player):
+            return "Permita que o NowDock controle \(player.displayName) nos Ajustes do Sistema, em Privacidade e Segurança, Automação."
+        case .compileFailed:
+            return "Não foi possível preparar o comando do player."
+        case .executeFailed(let code):
+            return "O player não executou o comando. Código \(code)."
+        }
+    }
 }
 
 /// Serial AppleScript runner. Compile once per (player, source); never touches the main thread.

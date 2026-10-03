@@ -119,7 +119,7 @@ final class SpotifyProvider: MediaProvider {
         let running = !NSRunningApplication.runningApplications(withBundleIdentifier: player.bundleIdentifier).isEmpty
         guard running else { return }
         guard runner.isAutomationGranted(for: player) else {
-            markAutomationNeededIfTrackPresent()
+            markAutomationNeeded()
             return
         }
         do {
@@ -191,7 +191,7 @@ final class SpotifyProvider: MediaProvider {
 
     private func enrich() async {
         guard runner.isAutomationGranted(for: player) else {
-            markAutomationNeededIfTrackPresent()
+            markAutomationNeeded()
             return
         }
         lock.lock()
@@ -246,14 +246,12 @@ final class SpotifyProvider: MediaProvider {
         }
     }
 
-    private func markAutomationNeededIfTrackPresent() {
+    private func markAutomationNeeded() {
         lock.lock()
-        let hasTrack = snap.track != nil
-        if hasTrack {
-            snap.permissionIssue = .automation(player)
-        }
+        let changed = snap.permissionIssue != .automation(player)
+        snap.permissionIssue = .automation(player)
         lock.unlock()
-        if hasTrack { onChange?() }
+        if changed { onChange?() }
     }
 
     private func applyRunnerError(_ error: Error) {

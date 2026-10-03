@@ -133,45 +133,64 @@ public struct NowPlayingState: Equatable, Sendable {
     }
 }
 
-public enum PanelLayout: String, Sendable, Equatable {
-    case full, compact, minimal
+public enum PanelLayout: String, Sendable, Equatable, CaseIterable {
+    /// Art, combined title line, progress with times, shuffle, previous, play, next, repeat.
+    case full
+    /// Art, combined title line, progress, previous, play, next.
+    case compact
+    /// Title and artist above previous, play, next. No art.
+    case minimal
+
+    /// Rendered-width cap. Beyond this the pill hugs the Dock side and stops growing.
+    public static let maxWidth: CGFloat = 560
+
+    /// The view scales its contents to fit both the width and Dock height.
+    public static func layout(forWidth width: CGFloat) -> PanelLayout? {
+        if width >= 400 { return .full }
+        if width >= 280 { return .compact }
+        if width >= 96 { return .minimal }
+        return nil
+    }
 }
 
 public enum EdgeGapPreset: String, Sendable, CaseIterable, Codable {
-    /// Same distance the Dock keeps from the bottom of the screen (min 6 pt).
-    case matchDock
-    case small
-    case medium
-    case large
+    case matchDock, small, medium, large
+
+    /// Smallest clearance that still reads as separate from the Dock.
+    /// Non-configurable safety invariant: `placement(for:)` clamps to it.
+    public static let minimum: CGFloat = 12
 
     public func value(dockBottomInset: CGFloat) -> CGFloat {
         switch self {
-        case .matchDock: max(6, dockBottomInset)
-        case .small: 6
-        case .medium: 12
-        case .large: 20
+        case .matchDock: max(Self.minimum, dockBottomInset)
+        case .small: 12
+        case .medium: 18
+        case .large: 28
         }
     }
 }
 
 public struct PlacementInput: Equatable, Sendable {
-    /// All rects in AppKit global coordinates (origin bottom-left of the primary screen).
+    /// AppKit global coordinates. Origin is the bottom-left of the primary screen.
     public var screenFrame: CGRect
     public var dockFrame: CGRect
-    public var edgeGap: CGFloat
-    public var maxWidth: CGFloat
-    public var minWidth: CGFloat
+    /// Clearance between the pill's right edge and `dockFrame.minX`.
+    /// Not a screen-edge margin, and not applied twice.
+    public var dockGap: CGFloat
 
-    public init(screenFrame: CGRect, dockFrame: CGRect, edgeGap: CGFloat, maxWidth: CGFloat = 560, minWidth: CGFloat = 200) {
+    public init(screenFrame: CGRect, dockFrame: CGRect, dockGap: CGFloat) {
         self.screenFrame = screenFrame
         self.dockFrame = dockFrame
-        self.edgeGap = edgeGap
-        self.maxWidth = maxWidth
-        self.minWidth = minWidth
+        self.dockGap = dockGap
     }
 }
 
+public struct PlacedPanel: Equatable, Sendable {
+    public let frame: CGRect
+    public let layout: PanelLayout
+}
+
 public enum PlacementResult: Equatable, Sendable {
-    case visible(frame: CGRect, layout: PanelLayout)
+    case visible(PlacedPanel)
     case hidden
 }
