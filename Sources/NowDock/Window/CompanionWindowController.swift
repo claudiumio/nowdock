@@ -123,6 +123,7 @@ final class CompanionWindowController: ObservableObject {
             panel.setFrame(placed.frame, display: true)
             hasPlacement = true
             Logger.nowDockWindow.info("dock=\(self.rect(snap.frame), privacy: .public) panel=\(self.rect(placed.frame), privacy: .public) layout=\(String(describing: placed.layout), privacy: .public)")
+            fullscreen.evaluate()
             applyRevealMode()
         case .hidden:
             hasPlacement = false

@@ -138,18 +138,17 @@ public enum PanelLayout: String, Sendable, Equatable, CaseIterable {
     case full
     /// Art, combined title line, progress, previous, play, next.
     case compact
-    /// Title, artist, previous, play, next. One row. No art.
+    /// Title and artist above previous, play, next. No art.
     case minimal
 
     /// Rendered-width cap. Beyond this the pill hugs the Dock side and stops growing.
     public static let maxWidth: CGFloat = 560
 
-    /// Layout for a rendered width, or nil when even squeezed transport + a text
-    /// sliver cannot fit. Keep in sync with `ControlButton` compact frames.
+    /// The view scales its contents to fit both the width and Dock height.
     public static func layout(forWidth width: CGFloat) -> PanelLayout? {
         if width >= 400 { return .full }
         if width >= 280 { return .compact }
-        if width >= 120 { return .minimal }
+        if width >= 96 { return .minimal }
         return nil
     }
 }

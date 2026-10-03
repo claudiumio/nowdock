@@ -61,15 +61,24 @@ import Testing
 
 @Test func placementExactMinimalFloor() {
     expectVisible(
-        makeInput(dockMinX: 138),
-        frame: CGRect(x: 6, y: 4, width: 120, height: 70),
+        makeInput(dockMinX: 114),
+        frame: CGRect(x: 6, y: 4, width: 96, height: 70),
         layout: .minimal
     )
 }
 
 @Test func placementHiddenBelowMinimalFloor() {
-    #expect(placement(for: makeInput(dockMinX: 137)) == .hidden)
+    #expect(placement(for: makeInput(dockMinX: 113)) == .hidden)
     #expect(placement(for: makeInput(dockMinX: 60)) == .hidden)
+}
+
+@Test func placementFitsCurrentDockWithoutReducingClearance() {
+    let input = PlacementInput(
+        screenFrame: CGRect(x: 0, y: 0, width: 1920, height: 1080),
+        dockFrame: CGRect(x: 131.5, y: 6, width: 1657, height: 65),
+        dockGap: 12
+    )
+    expectVisible(input, frame: CGRect(x: 6, y: 6, width: 113.5, height: 65), layout: .minimal)
 }
 
 @Test func placementHiddenWhenHeightIsZero() {
